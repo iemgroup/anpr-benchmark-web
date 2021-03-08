@@ -135,7 +135,7 @@ class EventsTables extends Component{
                               <td>{event.brand || '-'}</td>
                               <td>{event.color || '-'}</td>
                               <td>{event.plateCountry || '-'}</td>
-                              <td><a href={event.imagesURI}>{event.imagesURI ? 'lien' : '-'}</a></td>
+                              <td><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
                               {event.status === 'maybe'
                                 ? <td className="green">Probable</td>
                                 : <td className="red">Inconnu</td>
