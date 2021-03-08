@@ -9,6 +9,7 @@ import Datetime from 'react-datetime';
 import "react-datetime/css/react-datetime.css";
 
 import Button from '@material-ui/core/Button';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import "moment/locale/fr";
 
 
@@ -84,104 +85,21 @@ class EventsFilter extends Component{
             onChange={this.props.setPlate} 
           />
         </div>
-        <Button variant="contained" color="primary" onClick={this.props.validate}>Recherche</Button>
+        <Button variant="contained" onClick={this.props.validate} style={{color: 'white', backgroundColor: '#082851'}}>Recherche</Button>
       </div>
     );
   }
 }
 
-class App extends Component{
-  constructor(){
-    super();
-    this.state = { 
-      eventsLists: [],
-      eventsFilter: {
-        dateGte: moment().subtract(7, 'days').startOf('day')
-      }
-    };
-  }
-
-  componentDidMount() {
-    // this.searchEvents();
-  }
-
-  // const tableaux = [
-  //   {
-  //     provider: 'Axis',
-  //     route: 'http://localhost:3020/v1/events'
-  //   },
-  //   {
-  //     provider: 'Axis',
-
-  //   }
-  // ]
-
-  setDateGte(dateGte) {
-    this.setState({
-      eventsFilter: {
-        dateGte: dateGte
-      }
-    });
-  }
-  setDateLte(dateLte) {
-    this.setState({
-      eventsFilter: {
-        dateLte: dateLte
-      }
-    });
-  }
-  setPlate(event) {
-    this.setState({
-      eventsFilter: {
-        plate: event.target.value
-      }
-    });
-  }
-  
-  async searchEvents(){
-    const dateGte = this.state.eventsFilter.dateGte;
-    const dateLte = this.state.eventsFilter.dateLte;
-    const plate = this.state.eventsFilter.plate;
-    const params = {
-      ...(dateGte && { dateGte: moment(dateGte).toISOString() }),
-      ...(dateLte && { dateLte: moment(dateLte).toISOString() }),
-      ...(plate && { plate })
-    };
-    const host = process.env.REACT_APP_HOST;
-    const events1 = await axios.get(host, {params});
-    const filteredEvents1 = events1?.data.filter((event) => event.carState === 'new');
-    const events2 = await axios.get(host, {params});
-    // const events2 = await response2.json();
-    const filteredEvents2 = events2?.data.filter((event) => event.carState === 'new');
-    filteredEvents2.unshift({plate: 'BIDON'});
-    filteredEvents1.splice(10, 0, {plate: 'FOO'}, {plate: 'RE-BIDON'});
-    filteredEvents2.splice(4, 2, {plate: 'BAR'});
-    const sortedEventsLists = compareLists(filteredEvents1, filteredEvents2);
-    this.setState({ eventsLists: sortedEventsLists });
-    console.log('events', {sortedEventsLists});
-  }
+class EventsTables extends Component{
 
   render(){
     return(
-      <div className="App">
-       {/* <MyComponent title="React" /> */}
-        <div className="container">
-          <div className="title">
-          <h1>ANPR Benchmark by</h1>
-          <img src={logo} className="App-logo" alt="logo" />
-          </div>
-          <EventsFilter 
-            values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}
-            setDateGte={this.setDateGte.bind(this)} 
-            setDateLte={this.setDateLte.bind(this)}
-            setPlate={this.setPlate.bind(this)}
-            validate={this.searchEvents.bind(this)}
-          />
-          <div className="tables"> 
+      <div className="tables"> 
           <table>
             <tr>
             {
-              this.state.eventsLists.map((events, index)=>{
+              this.props.eventsLists.map((events, index)=>{
                 return (
                   <td style={{verticalAlign: "baseline"}}>
                     <table className="events-table">
@@ -235,6 +153,109 @@ class App extends Component{
             </tr>
           </table>
           </div>
+    );
+  }
+}
+
+class App extends Component{
+  constructor(){
+    super();
+    this.state = { 
+      eventsLists: [],
+      eventsFilter: {
+        dateGte: moment().subtract(7, 'days').startOf('day')
+      }
+    };
+  }
+
+  componentDidMount() {
+    // this.searchEvents();
+  }
+
+  // const tableaux = [
+  //   {
+  //     provider: 'Axis',
+  //     route: 'http://localhost:3020/v1/events'
+  //   },
+  //   {
+  //     provider: 'Axis',
+
+  //   }
+  // ]
+
+  setDateGte(dateGte) {
+    this.setState({
+      eventsFilter: {
+        dateGte: dateGte
+      }
+    });
+  }
+  setDateLte(dateLte) {
+    this.setState({
+      eventsFilter: {
+        dateLte: dateLte
+      }
+    });
+  }
+  setPlate(event) {
+    this.setState({
+      eventsFilter: {
+        plate: event.target.value
+      }
+    });
+  }
+  
+  async searchEvents(){
+    this.setState({
+      isLoading: true
+    })
+    const dateGte = this.state.eventsFilter.dateGte;
+    const dateLte = this.state.eventsFilter.dateLte;
+    const plate = this.state.eventsFilter.plate;
+    const params = {
+      ...(dateGte && { dateGte: moment(dateGte).toISOString() }),
+      ...(dateLte && { dateLte: moment(dateLte).toISOString() }),
+      ...(plate && { plate })
+    };
+    const host = process.env.REACT_APP_HOST;
+    const events1 = await axios.get(host, {params});
+    const filteredEvents1 = events1?.data.filter((event) => event.carState === 'new');
+    const events2 = await axios.get(host, {params});
+    // const events2 = await response2.json();
+    const filteredEvents2 = events2?.data.filter((event) => event.carState === 'new');
+    filteredEvents2.unshift({plate: 'BIDON'});
+    filteredEvents1.splice(10, 0, {plate: 'FOO'}, {plate: 'RE-BIDON'});
+    filteredEvents2.splice(4, 2, {plate: 'BAR'});
+    const sortedEventsLists = compareLists(filteredEvents1, filteredEvents2);
+    this.setState({ 
+      eventsLists: sortedEventsLists,
+      isLoading: false
+    });
+    console.log('events', {sortedEventsLists});
+  }
+
+  render(){
+    return(
+      <div className="App">
+       {/* <MyComponent title="React" /> */}
+        <div className="container">
+          <div className="title">
+          <h1>ANPR Benchmark by</h1>
+          <img src={logo} className="App-logo" alt="logo" />
+          </div>
+          <EventsFilter 
+            values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}
+            setDateGte={this.setDateGte.bind(this)} 
+            setDateLte={this.setDateLte.bind(this)}
+            setPlate={this.setPlate.bind(this)}
+            validate={this.searchEvents.bind(this)}
+          />
+          { !!this.state.isLoading && 
+            <CircularProgress style={{color: '#082851'}} />
+          }
+          { !this.state.isLoading && 
+            <EventsTables eventsLists={this.state.eventsLists} />
+          }
         </div>
       </div>
     )
