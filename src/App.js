@@ -81,7 +81,7 @@ class EventsFilter extends Component{
         <div>
           <label>Plaque</label>
           <input 
-            placeholder="Plate..."
+            placeholder="Ex:GE1234ABCD"
             onChange={this.props.setPlate} 
           />
         </div>
@@ -223,15 +223,11 @@ class App extends Component{
     const events2 = await axios.get(host, {params});
     // const events2 = await response2.json();
     const filteredEvents2 = events2?.data.filter((event) => event.carState === 'new');
-    filteredEvents2.unshift({plate: 'BIDON'});
-    filteredEvents1.splice(10, 0, {plate: 'FOO'}, {plate: 'RE-BIDON'});
-    filteredEvents2.splice(4, 2, {plate: 'BAR'});
     const sortedEventsLists = compareLists(filteredEvents1, filteredEvents2);
     this.setState({ 
       eventsLists: sortedEventsLists,
       isLoading: false
     });
-    console.log('events', {sortedEventsLists});
   }
 
   render(){
