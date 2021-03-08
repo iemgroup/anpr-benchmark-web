@@ -3,15 +3,10 @@
 }
 
 .App-logo {
-  height: 40vmin;
+  width: 15rem;
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
 
 .App-header {
   background-color: #282c34;
@@ -35,4 +30,66 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.title{
+  display: flex;
+}
+
+.title h1{
+  color: #082851;
+}
+
+.container{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.filter{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.filter > div{
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  margin-right: 1rem;
+}
+
+.tables{
+  display: flex;
+  align-items: center;
+}
+
+.events-table{
+  width: 100%;
+}
+
+.events-table th{
+  
+}
+
+.events-table, 
+.events-table th, 
+.events-table td {
+  border: 1px solid black;
+  padding: 3px;
+  font-size: 14px;
+}
+
+.events-table{
+  border-collapse: collapse;
+}
+
+td.red{
+  color: red;
+}
+
+td.green{
+  color: green;
 }
