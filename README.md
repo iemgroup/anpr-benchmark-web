@@ -11,7 +11,7 @@ This tool is used with a ExpressJs backend (HTTP/REST API) to GET the events (pl
 - [Git](https://git-scm.com/downloads)
 - [NPM](https://www.npmjs.com/)
 
-
+> The backend host must be set as an environment variable in local (variable REACT_APP_HOST) to be accessible from the Benchmark tool.
 
 ### Installing
 
