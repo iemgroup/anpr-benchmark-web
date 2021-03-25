@@ -33,11 +33,6 @@ npm run electron-pack
 ```
 The executable will be in the *dist* folder at the root of the app.
 
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
 ## Built With
 
 * [React](https://reactjs.org/)
