@@ -14,42 +14,42 @@ import "moment/locale/fr";
 
 
 
+
 function compareLists(list1, list2){
-  // - trier les deux listes par timestamp
+  // sort both lists by timestamp
   const sortedList1 = list1.sort((a, b) => a.timestamp - b.timestamp);
   const sortedList2 = list2.sort((a, b) => a.timestamp - b.timestamp);
   let currEvent1, currEvent2;
-  // - parcourir les deux listes sequentiellement
+  // browse the two lists sequentially
   for (let i = 0; i < sortedList1.length && i < sortedList2.length; i++) {
     currEvent1 = sortedList1[i];
     currEvent2 = sortedList2[i];
-    // - si plate1 = plate2 continuer
     if (currEvent1.plate === currEvent2.plate){
       currEvent1.status = currEvent2.status = 'maybe';
       continue;
     }
-    // - sinon chercher dans list2 en haut et en bas +- 10 plaques jusqu à trouver la plate1 dans list2
+    // otherwise search in list2 up and down + - 10 plates to find plate1 in list2
     currEvent1.status = currEvent2.status = 'unknown';
     let plateFound = false;
-    // recherche vers le haut
+    // search up
     let j = i-1;
     while(!plateFound && j >= 0 && i - j < 10 && sortedList2[j]?.status !== 'maybe'){
-      // - si trouvé, décaller plate2 au même niveau que plate1
+      // - if found, shift plate2 to the same level as plate1
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
         currEvent1.status = sortedList2[j].status = 'maybe';
-        sortedList2.splice(j, 0, ...( new Array(i-j).fill({}) ))
+        sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ))
       } 
       j--;
     }
-    // recherche vers le bas
+    // search down
     j = i+1;
     while(!plateFound && j < sortedList2.length && j - i < 10 && sortedList2[j]?.status !== 'maybe'){
-      // - si trouvé, décaller plate1 au même niveau que plate2
+      // if found, shift plate1 to the same level as plate2
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
         currEvent1.status = sortedList2[j].status = 'maybe';
-        sortedList1.splice(i, 0, ...( new Array(j-i).fill({}) ))
+        sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ))
       } 
       j++;
     }
@@ -93,9 +93,16 @@ class EventsFilter extends Component{
 
 class EventsTables extends Component{
 
+  successRatio(list){
+    const nbFail = list.filter(e => e.status === 'unknown').length;
+    return 'Succès: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%';
+  }
+
+
   render(){
     return(
       <div className="tables"> 
+          {/* <div><CSVLink data={csvData}>Download me</CSVLink>;</div> */}
           <table>
             <tr>
             {
@@ -105,7 +112,8 @@ class EventsTables extends Component{
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="11">{"Axis " + (Number(index) + 1)}</th>
+                          <th colSpan="10">{"Axis " + (Number(index) + 1)}</th>
+                          <th style={{color: 'green'}}>{this.successRatio(events)}</th>
                         </tr>
                         <tr>
                           <th>Timestamp</th>
@@ -128,7 +136,7 @@ class EventsTables extends Component{
                             <tr key={index}>
                               <td>{event.captureDatetime || '-'}</td>
                               <td>{event.plate || '-'}</td>
-                              <td>{event.plateConfidence || '-'}</td>
+                              <td>{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
                               <td>{event.crossing || '-'}</td>
                               <td>{event.carMoveDirection || '-'}</td>
                               <td>{event.vehicleType || '-'}</td>
@@ -169,19 +177,10 @@ class App extends Component{
   }
 
   componentDidMount() {
-    // this.searchEvents();
+
   }
 
-  // const tableaux = [
-  //   {
-  //     provider: 'Axis',
-  //     route: 'http://localhost:3020/v1/events'
-  //   },
-  //   {
-  //     provider: 'Axis',
 
-  //   }
-  // ]
 
   setDateGte(dateGte) {
     this.setState({
