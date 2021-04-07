@@ -64,14 +64,27 @@
 .tables{
   display: flex;
   align-items: center;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+.download-table-xls-button{
+  color: white;
+  background-color: #082851;
+  padding: 1px 5px;
+  font-size: 0.775rem;
+  min-width: 64px;
+  box-sizing: border-box;
+  transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms,border 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+  font-weight: 500;
+  line-height: 1.75;
+  border-radius: 4px;
+  letter-spacing: 0.02857em;
 }
 
 .events-table{
   width: 100%;
-}
-
-.events-table th{
-  
 }
 
 .events-table, 

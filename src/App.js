@@ -5,13 +5,15 @@ import './App.css';
 import _ from 'lodash';
 import axios from 'axios';
 import moment from 'moment';
+import "moment/locale/fr"; 
 import Datetime from 'react-datetime';
 import "react-datetime/css/react-datetime.css";
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import "moment/locale/fr";
-
+import { CSVLink, CSVDownload } from "react-csv";
+import MaterialTable from 'material-table'
+import ReactHTMLTableToExcel from 'react-html-table-to-excel';
 
 
 
@@ -95,28 +97,52 @@ class EventsTables extends Component{
 
   successRatio(list){
     const nbFail = list.filter(e => e.status === 'unknown').length;
-    return 'Succès: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%';
+    return list.length && 'Succès: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
   }
 
+//   exportCSV(lists){
+//     // data = [
+// //   ["firstname", "lastname", "email"],
+// //   ["Ahmed", "Tomi", "ah@smthing.co.com"],
+// //   ["Raed", "Labes", "rl@smthing.co.com"],
+// //   ["Yezzi", "Min l3b", "ymin@cocococo.com"]
+// // ];
+//     const headers = ["Timestamp","Plaque","Confiance","Franchissement","Direction","Type","Marque","Couleur","Pays","Photo","Statut"];
+//     const data = [
+//       [...headers, '', ...headers]
+//     ];
+//     lists.forEach((list, i)=>{
+      
+//     });
+//   }
 
   render(){
     return(
       <div className="tables"> 
+          <ReactHTMLTableToExcel
+        id="test-table-xls-button"
+        className="download-table-xls-button"
+        table="benchmark-table"
+        filename="comparatif-anpr"
+        sheet="comparatif ANPR"
+        buttonText="Export Excel"
+      />
           {/* <div><CSVLink data={csvData}>Download me</CSVLink>;</div> */}
-          <table>
+          <table id="benchmark-table">
             <tr>
             {
-              this.props.eventsLists.map((events, index)=>{
+              Object.keys(this.props.eventsListsByProvider).map((provider, index)=>{
+                const events = this.props.eventsListsByProvider[provider];
                 return (
                   <td style={{verticalAlign: "baseline"}}>
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="10">{"Axis " + (Number(index) + 1)}</th>
+                          <th colSpan="10">{provider}</th>
                           <th style={{color: 'green'}}>{this.successRatio(events)}</th>
                         </tr>
                         <tr>
-                          <th>Timestamp</th>
+                          <th>Date</th>
                           <th>Plaque</th>
                           <th>Confiance</th>
                           <th>Franchissement</th>
@@ -134,12 +160,12 @@ class EventsTables extends Component{
                           events.map(( event, index ) => {
                           return (
                             <tr key={index}>
-                              <td>{event.captureDatetime || '-'}</td>
+                              <td>{ moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') || '-'}</td>
                               <td>{event.plate || '-'}</td>
                               <td>{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
                               <td>{event.crossing || '-'}</td>
                               <td>{event.carMoveDirection || '-'}</td>
-                              <td>{event.vehicleType || '-'}</td>
+                              <td>{event.carType || '-'}</td>
                               <td>{event.brand || '-'}</td>
                               <td>{event.color || '-'}</td>
                               <td>{event.plateCountry || '-'}</td>
@@ -169,18 +195,16 @@ class App extends Component{
   constructor(){
     super();
     this.state = { 
-      eventsLists: [],
+      eventsListsByProvider: {},
       eventsFilter: {
-        dateGte: moment().subtract(7, 'days').startOf('day')
+        dateGte: moment().subtract(1, 'hours')
       }
     };
   }
 
   componentDidMount() {
-
+    // this.searchEvents();
   }
-
-
 
   setDateGte(dateGte) {
     this.setState({
@@ -205,26 +229,46 @@ class App extends Component{
   }
   
   async searchEvents(){
+    const providers = ['Axis','Hik'];
     this.setState({
       isLoading: true
     })
     const dateGte = this.state.eventsFilter.dateGte;
     const dateLte = this.state.eventsFilter.dateLte;
     const plate = this.state.eventsFilter.plate;
-    const params = {
+    const filters = {
       ...(dateGte && { dateGte: moment(dateGte).toISOString() }),
       ...(dateLte && { dateLte: moment(dateLte).toISOString() }),
       ...(plate && { plate })
     };
     const host = process.env.REACT_APP_HOST;
-    const events1 = await axios.get(host, {params});
-    const filteredEvents1 = events1?.data.filter((event) => event.carState === 'new');
-    const events2 = await axios.get(host, {params});
+    // providers.forEach((provider)=>{
+      //   filters.provider = provider;
+      //   eventsListsByProvider[provider].events = await axios.get(host, {filters})
+      // });
+      
+    const eventsListsByProvider = {};
+    
+    const result1 = await axios.get(host, {
+      params:{
+        ...filters, 
+        provider: providers[0] 
+      }
+    });
+    const events1 = result1?.data;
+    const result2 = await axios.get(host, { 
+      params:{
+        ...filters, 
+        provider: providers[1] 
+      }
+    });
     // const events2 = await response2.json();
-    const filteredEvents2 = events2?.data.filter((event) => event.carState === 'new');
-    const sortedEventsLists = compareLists(filteredEvents1, filteredEvents2);
+    const events2 = result2?.data;
+    const [eventsList1, eventsList2] = compareLists(events1, events2);
+    eventsListsByProvider[providers[0]] = eventsList1
+    eventsListsByProvider[providers[1]] = eventsList2
     this.setState({ 
-      eventsLists: sortedEventsLists,
+      eventsListsByProvider: eventsListsByProvider,
       isLoading: false
     });
   }
@@ -237,6 +281,7 @@ class App extends Component{
           <div className="title">
           <h1>ANPR Benchmark by</h1>
           <img src={logo} className="App-logo" alt="logo" />
+          <p>Ver. {process.env.npm_package_version}</p>
           </div>
           <EventsFilter 
             values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}
@@ -248,8 +293,8 @@ class App extends Component{
           { !!this.state.isLoading && 
             <CircularProgress style={{color: '#082851'}} />
           }
-          { !this.state.isLoading && 
-            <EventsTables eventsLists={this.state.eventsLists} />
+          { !this.state.isLoading && !!this.state.eventsListsByProvider &&
+            <EventsTables eventsListsByProvider={this.state.eventsListsByProvider} />
           }
         </div>
       </div>
