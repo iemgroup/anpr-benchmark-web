@@ -11,9 +11,9 @@ import "react-datetime/css/react-datetime.css";
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import { CSVLink, CSVDownload } from "react-csv";
 import MaterialTable from 'material-table'
 import ReactHTMLTableToExcel from 'react-html-table-to-excel';
+
 
 
 
@@ -93,28 +93,72 @@ class EventsFilter extends Component{
   }
 }
 
-class EventsTables extends Component{
+class EditableCell extends Component{
+  constructor(props){
+    super(props);
+    this.state = {
+      cause: ''
+    }
+  }
+  onFocusIn (event) {
+    if (event.target.matches('[contenteditable]')) {
+      var editable = event.target
+      // enter edit mode
+      // editable.classList.add("editing")
+      // get text
+      var text = editable.innerText
+      // create input
+      var input = document.createElement("input");
+      input.type = "text";
+      input.className = "editable-mirror";
+      input.setAttribute("list", "causes");
+      input.value = text;
+      console.log('input', input)
+      console.log('editable', editable)
+  
+      editable.appendChild(input);
+  
+      input.addEventListener('focusout', (event2)=>{
+        if (event2.target.matches('.editable-mirror')) {
+          // leave edit mode
+          // editable.classList.remove("editing")
+          var text = input.value;
+          editable.innerHTML = text;
+          // destroy input
+          input.remove();
+          // apply value
+        }
+      });
+      
+      input.focus();
+    }
+  }
 
+
+  render(){
+    return(
+      <span contentEditable onFocus={this.onFocusIn.bind(this)} ></span>
+    );
+  }
+}
+
+class EventsTables extends Component{
+  constructor(props){
+    super(props);
+    this.state = {
+      causes : [
+          "Pas une plaque",
+          "Mauvais éclairage",
+        ]
+    }
+  }
+  selectCallback = (cause) => {
+    // return this.setState({ ...cause })
+  }
   successRatio(list){
     const nbFail = list.filter(e => e.status === 'unknown').length;
     return list.length && 'Succès: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
   }
-
-//   exportCSV(lists){
-//     // data = [
-// //   ["firstname", "lastname", "email"],
-// //   ["Ahmed", "Tomi", "ah@smthing.co.com"],
-// //   ["Raed", "Labes", "rl@smthing.co.com"],
-// //   ["Yezzi", "Min l3b", "ymin@cocococo.com"]
-// // ];
-//     const headers = ["Timestamp","Plaque","Confiance","Franchissement","Direction","Type","Marque","Couleur","Pays","Photo","Statut"];
-//     const data = [
-//       [...headers, '', ...headers]
-//     ];
-//     lists.forEach((list, i)=>{
-      
-//     });
-//   }
 
   render(){
     return(
@@ -138,7 +182,7 @@ class EventsTables extends Component{
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="10">{provider}</th>
+                          <th colSpan="11">{provider}</th>
                           <th style={{color: 'green'}}>{this.successRatio(events)}</th>
                         </tr>
                         <tr>
@@ -152,6 +196,7 @@ class EventsTables extends Component{
                           <th>Couleur</th>
                           <th>Pays</th>
                           <th>Photo</th>
+                          <th>Cause erreur</th>
                           <th>Statut</th>
                         </tr>
                       </thead>
@@ -170,6 +215,9 @@ class EventsTables extends Component{
                               <td>{event.color || '-'}</td>
                               <td>{event.plateCountry || '-'}</td>
                               <td><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
+                              <td>
+                              <EditableCell />
+                              </td>
                               {event.status === 'maybe'
                                 ? <td className="green">Probable</td>
                                 : <td className="red">Inconnu</td>
@@ -186,6 +234,11 @@ class EventsTables extends Component{
             }
             </tr>
           </table>
+          <datalist id="causes">
+            {this.state.causes.map((cause, key) =>
+            <option key={key} value={cause} />
+            )}
+          </datalist>
           </div>
     );
   }
@@ -281,7 +334,7 @@ class App extends Component{
           <div className="title">
           <h1>ANPR Benchmark by</h1>
           <img src={logo} className="App-logo" alt="logo" />
-          <p>Ver. {process.env.npm_package_version}</p>
+          <p>Ver. {process.env.REACT_APP_VERSION}</p>
           </div>
           <EventsFilter 
             values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}

@@ -106,3 +106,22 @@ td.red{
 td.green{
   color: green;
 }
+
+[contenteditable] {
+  display: block;
+  position: relative;
+  border: 1px solid silver;
+  padding: 2px 5px;
+}
+
+.editable-mirror {
+    position: absolute;
+    left: -1px;
+    top: -1px;
+    height: 100%;
+    width: 100%;
+    padding: 2px 5px;
+    margin: 0;
+    border: 0;
+    font: inherit;
+}
