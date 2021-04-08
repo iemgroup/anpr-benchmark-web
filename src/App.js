@@ -33,9 +33,15 @@ function compareLists(list1, list2){
     // otherwise search in list2 up and down + - 10 plates to find plate1 in list2
     currEvent1.status = currEvent2.status = 'unknown';
     let plateFound = false;
+    
     // search up
     let j = i-1;
-    while(!plateFound && j >= 0 && i - j < 10 && sortedList2[j]?.status !== 'maybe'){
+    // let isBelowLimit = i - j < 10;
+    let timeDiff = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
+    while(!plateFound 
+        && j >= 0 
+        &&  timeDiff < 60
+        && sortedList2[j]?.status !== 'maybe'){
       // - if found, shift plate2 to the same level as plate1
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
@@ -43,10 +49,16 @@ function compareLists(list1, list2){
         sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ))
       } 
       j--;
+      timeDiff = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds')
     }
     // search down
     j = i+1;
-    while(!plateFound && j < sortedList2.length && j - i < 10 && sortedList2[j]?.status !== 'maybe'){
+    // isBelowLimit = j - i < 10;
+    timeDiff = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
+    while(!plateFound 
+        && j < sortedList2.length 
+        && timeDiff < 60 
+        && sortedList2[j]?.status !== 'maybe'){
       // if found, shift plate1 to the same level as plate2
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
@@ -54,6 +66,7 @@ function compareLists(list1, list2){
         sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ))
       } 
       j++;
+      timeDiff = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
     }
   }
   return [sortedList1, sortedList2];
@@ -176,6 +189,7 @@ class EventsTables extends Component{
         }
           {/* <div><CSVLink data={csvData}>Download me</CSVLink>;</div> */}
           <table id="benchmark-table">
+          <tbody> 
             <tr>
             {
               Object.keys(this.props.eventsListsByProvider).map((provider, index)=>{
@@ -236,6 +250,7 @@ class EventsTables extends Component{
               })
             }
             </tr>
+          </tbody>
           </table>
           <datalist id="causes">
             {this.state.causes.map((cause, key) =>
