@@ -163,14 +163,17 @@ class EventsTables extends Component{
   render(){
     return(
       <div className="tables"> 
+        {
+          !!Object.keys(this.props.eventsListsByProvider).length && 
           <ReactHTMLTableToExcel
-        id="test-table-xls-button"
-        className="download-table-xls-button"
-        table="benchmark-table"
-        filename="comparatif-anpr"
-        sheet="comparatif ANPR"
-        buttonText="Export Excel"
-      />
+          id="test-table-xls-button"
+          className="download-table-xls-button"
+          table="benchmark-table"
+          filename="comparatif-anpr"
+          sheet="comparatif ANPR"
+          buttonText="Export Excel"
+          />
+        }
           {/* <div><CSVLink data={csvData}>Download me</CSVLink>;</div> */}
           <table id="benchmark-table">
             <tr>
@@ -205,7 +208,7 @@ class EventsTables extends Component{
                           events.map(( event, index ) => {
                           return (
                             <tr key={index}>
-                              <td>{ moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') || '-'}</td>
+                              <td>{ ( !!event.captureDatetime && moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
                               <td>{event.plate || '-'}</td>
                               <td>{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
                               <td>{event.crossing || '-'}</td>
