@@ -278,25 +278,28 @@ class App extends Component{
   }
 
   setDateGte(dateGte) {
-    this.setState({
+    this.setState( (prevState) => ({
       eventsFilter: {
+        ...prevState.eventsFilter,
         dateGte: dateGte
       }
-    });
+    }));
   }
   setDateLte(dateLte) {
-    this.setState({
+    this.setState( (prevState) => ({
       eventsFilter: {
+        ...prevState.eventsFilter,
         dateLte: dateLte
       }
-    });
+    }));
   }
   setPlate(event) {
-    this.setState({
+    this.setState((prevState) => ({
       eventsFilter: {
+        ...prevState.eventsFilter,
         plate: event.target.value
       }
-    });
+    }));
   }
   
   async searchEvents(){
