@@ -105,7 +105,7 @@ class EventsFilter extends Component{
     return(
       <div className="filter">
         <div>
-          <label>Date début</label>
+          <label>Start date</label>
           <Datetime 
             locale="fr"
             value={this.props.values.dateGte}
@@ -113,7 +113,7 @@ class EventsFilter extends Component{
           />
         </div>
         <div>
-          <label>Date fin</label>
+          <label>End date</label>
           <Datetime 
             locale="fr"
             value={this.props.values.dateLte}
@@ -121,13 +121,13 @@ class EventsFilter extends Component{
           />
         </div>
         <div>
-          <label>Plaque</label>
+          <label>Plate</label>
           <input 
             placeholder="Ex:GE1234ABCD"
             onChange={this.props.setPlate} 
           />
         </div>
-        <Button variant="contained" onClick={this.props.validate} style={{color: 'white', backgroundColor: '#082851'}}>Recherche</Button>
+        <Button variant="contained" onClick={this.props.validate} style={{color: 'white', backgroundColor: '#082851'}}>Search</Button>
       </div>
     );
   }
@@ -197,7 +197,7 @@ class EventsTables extends Component{
   }
   successRatio(list){
     const nbFail = list.filter(e => e.status === 'unknown').length;
-    return list.length && 'Succès: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
+    return list.length && 'Success: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
   }
 
   render(){
@@ -232,17 +232,17 @@ class EventsTables extends Component{
                         <tr>
                           <th className="nowrap">Date</th>
                           <th className="nowrap">Record date</th>
-                          <th className="nowrap">Plaque</th>
-                          <th className="nowrap">Confiance</th>
+                          <th className="nowrap">Plate</th>
+                          <th className="nowrap">Trust</th>
                           {/* <th className="nowrap">Franchissement</th> */}
                           <th className="nowrap">Direction</th>
                           {/* <th className="nowrap">Type</th> */}
                           {/* <th className="nowrap">Marque</th> */}
                           {/* <th className="nowrap">Couleur</th> */}
-                          <th className="nowrap">Pays</th>
+                          <th className="nowrap">Country</th>
                           <th className="nowrap">Photo</th>
-                          <th className="nowrap">Cause erreur</th>
-                          <th className="nowrap">Statut</th>
+                          <th className="nowrap">Cause of error</th>
+                          <th className="nowrap">Status</th>
                         </tr>
                       </thead>
                       <tbody>  
@@ -265,8 +265,8 @@ class EventsTables extends Component{
                               <EditableCell />
                               </td>
                               {event.status === 'maybe'
-                                ? <td className="green nowrap">Probable</td>
-                                : <td className="red nowrap">Inconnu</td>
+                                ? <td className="green nowrap">Likely</td>
+                                : <td className="red nowrap">Unknown</td>
                               }
                             </tr>
                           );
