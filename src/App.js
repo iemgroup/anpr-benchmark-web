@@ -21,9 +21,30 @@ function compareLists(list1, list2){
   // sort both lists by timestamp
   const sortedList1 = list1.sort((a, b) => a.timestamp - b.timestamp);
   const sortedList2 = list2.sort((a, b) => a.timestamp - b.timestamp);
-  let currEvent1, currEvent2;
-  // browse the two lists sequentially
-  for (let i = 0; i < sortedList1.length && i < sortedList2.length; i++) {
+  let currEvent1, currEvent2, diffSeconds, i = 0, j = 0;
+  const timePeriodSeconds = 60;
+  // ======================
+  // pads the top of the lists to align leading value by time if the gap is too large
+  
+  while( i < sortedList1.length
+      && j < sortedList2.length){
+    diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
+    if(Math.abs(diffSeconds) <= timePeriodSeconds) break;
+    // list 1's date > list 2's date
+    if(diffSeconds > 0){
+      sortedList1.splice(i, 0, ...( new Array(1).fill({status: 'unknown'}) ))
+    }
+    // list 1's date < list 2's date
+    else{
+      sortedList2.splice(j, 0, ...( new Array(1).fill({status: 'unknown'}) ))
+    }
+    i++;
+    j++;
+    // diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
+  }
+  // ======================
+  // browse the two lists sequentially and check plates correspondance within time period
+  for (; i < sortedList1.length && i < sortedList2.length; i++) {
     currEvent1 = sortedList1[i];
     currEvent2 = sortedList2[i];
     if (currEvent1.plate === currEvent2.plate){
@@ -33,42 +54,48 @@ function compareLists(list1, list2){
     // otherwise search in list2 up and down + - 10 plates to find plate1 in list2
     currEvent1.status = currEvent2.status = 'unknown';
     let plateFound = false;
-    
+    // -----------------------
     // search up
-    let j = i-1;
-    // let isBelowLimit = i - j < 10;
-    let timeDiff = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
+    j = i-1;
+    diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
     while(!plateFound 
         && j >= 0 
-        &&  timeDiff < 60
+        &&  diffSeconds < timePeriodSeconds
         && sortedList2[j]?.status !== 'maybe'){
       // - if found, shift plate2 to the same level as plate1
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
         currEvent1.status = sortedList2[j].status = 'maybe';
-        sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ))
+        sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ));
       } 
       j--;
-      timeDiff = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds')
+      diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds')
     }
+    // -----------------------
     // search down
     j = i+1;
-    // isBelowLimit = j - i < 10;
-    timeDiff = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
+    diffSeconds = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
     while(!plateFound 
         && j < sortedList2.length 
-        && timeDiff < 60 
+        && diffSeconds < timePeriodSeconds 
         && sortedList2[j]?.status !== 'maybe'){
       // if found, shift plate1 to the same level as plate2
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
         currEvent1.status = sortedList2[j].status = 'maybe';
-        sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ))
+        sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ));
       } 
       j++;
-      timeDiff = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
+      diffSeconds = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
     }
+    // -----------------------
   }
+  // ======================
+  // pads the two lists to get same length at the end
+  while(sortedList1.length > sortedList2.length) sortedList2.push({status: 'unknown'});
+  while(sortedList1.length < sortedList2.length) sortedList1.push({status: 'unknown'});
+  
+  
   return [sortedList1, sortedList2];
 }
 
@@ -199,22 +226,23 @@ class EventsTables extends Component{
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="11">{provider}</th>
+                          <th colSpan="8">{provider}</th>
                           <th style={{color: 'green'}}>{this.successRatio(events)}</th>
                         </tr>
                         <tr>
-                          <th>Date</th>
-                          <th>Plaque</th>
-                          <th>Confiance</th>
-                          <th>Franchissement</th>
-                          <th>Direction</th>
-                          <th>Type</th>
-                          <th>Marque</th>
-                          <th>Couleur</th>
-                          <th>Pays</th>
-                          <th>Photo</th>
-                          <th>Cause erreur</th>
-                          <th>Statut</th>
+                          <th className="nowrap">Date</th>
+                          <th className="nowrap">Record date</th>
+                          <th className="nowrap">Plaque</th>
+                          <th className="nowrap">Confiance</th>
+                          {/* <th className="nowrap">Franchissement</th> */}
+                          <th className="nowrap">Direction</th>
+                          {/* <th className="nowrap">Type</th> */}
+                          {/* <th className="nowrap">Marque</th> */}
+                          {/* <th className="nowrap">Couleur</th> */}
+                          <th className="nowrap">Pays</th>
+                          <th className="nowrap">Photo</th>
+                          <th className="nowrap">Cause erreur</th>
+                          <th className="nowrap">Statut</th>
                         </tr>
                       </thead>
                       <tbody>  
@@ -222,22 +250,23 @@ class EventsTables extends Component{
                           events.map(( event, index ) => {
                           return (
                             <tr key={index}>
-                              <td>{ ( !!event.captureDatetime && moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
-                              <td>{event.plate || '-'}</td>
-                              <td>{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
-                              <td>{event.crossing || '-'}</td>
-                              <td>{event.carMoveDirection || '-'}</td>
-                              <td>{event.carType || '-'}</td>
-                              <td>{event.brand || '-'}</td>
-                              <td>{event.color || '-'}</td>
-                              <td>{event.plateCountry || '-'}</td>
-                              <td><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
-                              <td>
+                              <td className="nowrap">{ ( !!event.captureDatetime && moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
+                              <td className="nowrap">{ (!!event.recordDatetime && moment(event.recordDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
+                              <td className="nowrap">{event.plate || '-'}</td>
+                              <td className="nowrap">{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
+                              {/* <td className="nowrap">{event.crossing || '-'}</td> */}
+                              <td className="nowrap">{event.carMoveDirection || '-'}</td>
+                              {/* <td className="nowrap">{event.carType || '-'}</td> */}
+                              {/* <td className="nowrap">{event.brand || '-'}</td> */}
+                              {/* <td className="nowrap">{event.color || '-'}</td> */}
+                              <td className="nowrap">{event.plateCountry || '-'}</td>
+                              <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
+                              <td className="nowrap">
                               <EditableCell />
                               </td>
                               {event.status === 'maybe'
-                                ? <td className="green">Probable</td>
-                                : <td className="red">Inconnu</td>
+                                ? <td className="green nowrap">Probable</td>
+                                : <td className="red nowrap">Inconnu</td>
                               }
                             </tr>
                           );

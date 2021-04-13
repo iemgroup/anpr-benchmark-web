@@ -107,6 +107,14 @@ td.green{
   color: green;
 }
 
+td.nowrap,
+th.nowrap
+{
+  white-space:nowrap;
+  width:237px;
+  vertical-align:top;
+}
+
 [contenteditable] {
   display: block;
   position: relative;
