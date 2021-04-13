@@ -196,7 +196,7 @@ class EventsTables extends Component{
     // return this.setState({ ...cause })
   }
   successRatio(list){
-    const nbFail = list.filter(e => e.status === 'unknown').length;
+    const nbFail = list.filter(e => e.status !== 'maybe').length;
     return list.length && 'Success: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
   }
 
