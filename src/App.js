@@ -8,6 +8,8 @@ import moment from 'moment';
 import "moment/locale/fr"; 
 import Datetime from 'react-datetime';
 import "react-datetime/css/react-datetime.css";
+import Protect from 'react-app-protect'
+import 'react-app-protect/dist/index.css'
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -226,7 +228,7 @@ class EventsTables extends Component{
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="8">{provider}</th>
+                          <th colSpan="10">{provider}</th>
                           <th style={{color: 'green'}}>{this.successRatio(events)}</th>
                         </tr>
                         <tr>
@@ -234,6 +236,8 @@ class EventsTables extends Component{
                           <th className="nowrap">Record date</th>
                           <th className="nowrap">Plate</th>
                           <th className="nowrap">Trust</th>
+                          <th className="nowrap">Franic Plate</th>
+                          <th className="nowrap">Franic Trust</th>
                           {/* <th className="nowrap">Franchissement</th> */}
                           <th className="nowrap">Direction</th>
                           {/* <th className="nowrap">Type</th> */}
@@ -253,7 +257,9 @@ class EventsTables extends Component{
                               <td className="nowrap">{ ( !!event.captureDatetime && moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
                               <td className="nowrap">{ (!!event.recordDatetime && moment(event.recordDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
                               <td className="nowrap">{event.plate || '-'}</td>
-                              <td className="nowrap">{ (event.plateConfidence && Number(event.plateConfidence).toFixed(2)) || '-'}</td>
+                              <td className="nowrap">{ ( event.plateConfidence && Number(event.plateConfidence).toFixed(2) + ' %' ) || '-'}</td>
+                              <td className={`${event.plate !== event.franicPlate?.Value ? "red": ""} nowrap`}>{event.franicPlate?.Value || '-'}</td>
+                              <td className="nowrap">{ ( event.franicPlate?.Confidence && Number( Number(event.franicPlate?.Confidence)*100 ).toFixed(2) + ' %' )|| '-'}</td>
                               {/* <td className="nowrap">{event.crossing || '-'}</td> */}
                               <td className="nowrap">{event.carMoveDirection || '-'}</td>
                               {/* <td className="nowrap">{event.carType || '-'}</td> */}
@@ -378,29 +384,33 @@ class App extends Component{
 
   render(){
     return(
-      <div className="App">
-       {/* <MyComponent title="React" /> */}
-        <div className="container">
-          <div className="title">
-          <h1>ANPR Benchmark by</h1>
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>Ver. {process.env.REACT_APP_VERSION}</p>
+      <Protect
+        sha512={process.env.REACT_APP_PASS}
+      >
+        <div className="App">
+        {/* <MyComponent title="React" /> */}
+          <div className="container">
+            <div className="title">
+            <h1>ANPR Benchmark by</h1>
+            <img src={logo} className="App-logo" alt="logo" />
+            <p>Ver. {process.env.REACT_APP_VERSION}</p>
+            </div>
+            <EventsFilter 
+              values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}
+              setDateGte={this.setDateGte.bind(this)} 
+              setDateLte={this.setDateLte.bind(this)}
+              setPlate={this.setPlate.bind(this)}
+              validate={this.searchEvents.bind(this)}
+            />
+            { !!this.state.isLoading && 
+              <CircularProgress style={{color: '#082851'}} />
+            }
+            { !this.state.isLoading && !!this.state.eventsListsByProvider &&
+              <EventsTables eventsListsByProvider={this.state.eventsListsByProvider} />
+            }
           </div>
-          <EventsFilter 
-            values = {{dateGte: this.state.eventsFilter.dateGte, dateLte: this.state.eventsFilter.dateLte}}
-            setDateGte={this.setDateGte.bind(this)} 
-            setDateLte={this.setDateLte.bind(this)}
-            setPlate={this.setPlate.bind(this)}
-            validate={this.searchEvents.bind(this)}
-          />
-          { !!this.state.isLoading && 
-            <CircularProgress style={{color: '#082851'}} />
-          }
-          { !this.state.isLoading && !!this.state.eventsListsByProvider &&
-            <EventsTables eventsListsByProvider={this.state.eventsListsByProvider} />
-          }
         </div>
-      </div>
+      </Protect>
     )
   }
 }
