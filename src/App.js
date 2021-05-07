@@ -10,6 +10,7 @@ import Datetime from 'react-datetime';
 import Protect from 'react-app-protect'
 import 'react-app-protect/dist/index.css'
 import "react-datetime/css/react-datetime.css";
+import { RiSave3Fill } from 'react-icons/ri';
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -19,7 +20,24 @@ import MaterialTable from 'material-table'
 import ReactHTMLTableToExcel from 'react-html-table-to-excel';
 
 
-
+function alignInTime(list1, list2, index=0, timePeriodSeconds){
+  let diffSeconds;
+  while( index < list1.length
+      && index < list2.length){
+    diffSeconds = moment(list1[index]?.captureDatetime).diff(moment(list2[index]?.captureDatetime), 'seconds');
+    if(Math.abs(diffSeconds) <= timePeriodSeconds) break;
+    // list 1's date > list 2's date
+    if(diffSeconds > 0){
+      list1.splice(index, 0, ...( new Array(1).fill({status: 'unknown'}) ))
+    }
+    // list 1's date < list 2's date
+    else{
+      list2.splice(index, 0, ...( new Array(1).fill({status: 'unknown'}) ))
+    }
+    index++;
+  }
+  return index;
+}
 
 function compareLists(list1, list2){
   // sort both lists by timestamp
@@ -28,35 +46,18 @@ function compareLists(list1, list2){
   let currEvent1, currEvent2, diffSeconds, i = 0, j = 0;
   const timePeriodSeconds = 60;
   // ======================
-  // pads the top of the lists to align leading value by time if the gap is too large
-  
-  while( i < sortedList1.length
-      && j < sortedList2.length){
-    diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
-    if(Math.abs(diffSeconds) <= timePeriodSeconds) break;
-    // list 1's date > list 2's date
-    if(diffSeconds > 0){
-      sortedList1.splice(i, 0, ...( new Array(1).fill({status: 'unknown'}) ))
-    }
-    // list 1's date < list 2's date
-    else{
-      sortedList2.splice(j, 0, ...( new Array(1).fill({status: 'unknown'}) ))
-    }
-    i++;
-    j++;
-    // diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
-  }
-  // ======================
   // browse the two lists sequentially and check plates correspondance within time period
   for (; i < sortedList1.length && i < sortedList2.length; i++) {
+    // pads the top of the lists to align leading value by time if the gap is too large
+    i = alignInTime(sortedList1, sortedList2, i, timePeriodSeconds);
     currEvent1 = sortedList1[i];
     currEvent2 = sortedList2[i];
-    if (currEvent1.plate === currEvent2.plate){
-      currEvent1.status = currEvent2.status = 'maybe';
+    if ( currEvent1.plate === currEvent2.plate ){
+      currEvent1.status = currEvent1.status || 'maybe';
+      currEvent2.status = currEvent2.status || 'maybe';
+      // currEvent1.status = currEvent2.status = 'maybe';
       continue;
     }
-    // otherwise search in list2 up and down + - 10 plates to find plate1 in list2
-    currEvent1.status = currEvent2.status = 'unknown';
     let plateFound = false;
     // -----------------------
     // search up
@@ -65,11 +66,14 @@ function compareLists(list1, list2){
     while(!plateFound 
         && j >= 0 
         &&  diffSeconds < timePeriodSeconds
-        && sortedList2[j]?.status !== 'maybe'){
+        // && sortedList2[j]?.status !== 'maybe'){
+      ){
       // - if found, shift plate2 to the same level as plate1
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
-        currEvent1.status = sortedList2[j].status = 'maybe';
+        // currEvent1.status = sortedList2[j].status = 'maybe';
+        currEvent1.status = currEvent1.status || 'maybe';
+        sortedList2[j].status = sortedList2[j].status || 'maybe';
         sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ));
       } 
       j--;
@@ -82,11 +86,14 @@ function compareLists(list1, list2){
     while(!plateFound 
         && j < sortedList2.length 
         && diffSeconds < timePeriodSeconds 
-        && sortedList2[j]?.status !== 'maybe'){
+        // && sortedList2[j]?.status !== 'maybe'){
+      ){
       // if found, shift plate1 to the same level as plate2
       if(sortedList1[i].plate === sortedList2[j].plate){
         plateFound = true;
-        currEvent1.status = sortedList2[j].status = 'maybe';
+        // currEvent1.status = sortedList2[j].status = 'maybe';
+        currEvent1.status = currEvent1.status || 'maybe';
+        sortedList2[j].status = sortedList2[j].status || 'maybe';
         sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ));
       } 
       j++;
@@ -277,22 +284,28 @@ class EventsTables extends Component{
                               {/* <td className="nowrap">{event.color || '-'}</td> */}
                               <td className="nowrap">{event.plateCountry || '-'}</td>
                               <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
-                              <td className="nowrap">
-                                <EditableCell 
-                                value={event.causeOfError} 
-                                onFocusOut={(text)=>this.props.updateEventCauseOfError(provider, index, text)}
-                                />
-                              </td>
-                              <td className="nowrap">
-                                <Select
-                                  value={event.status || 'unknown'} 
-                                  onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
-                                  style={{color: event.status === 'maybe' ? 'green' : 'red', width:'100%'}}
-                                >
-                                  <MenuItem value="maybe" style={{color:'green'}}>Likely</MenuItem>
-                                  <MenuItem value="unknown" style={{color:'red'}}>Unknown</MenuItem>
-                                </Select>
-                              </td>
+                              {event._id
+                                ? <td className="nowrap">
+                                  <EditableCell 
+                                  value={event.causeOfError} 
+                                  onFocusOut={(text)=>this.props.updateEventCauseOfError(provider, index, text)}
+                                  />
+                                </td>
+                                : <td className="nowrap">-</td>
+                              }
+                              {event._id
+                                ? <td className="nowrap">
+                                    <Select
+                                      value={event.status || 'unknown'} 
+                                      onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
+                                      style={{color: event.status === 'maybe' ? 'green' : 'red', width:'100%'}}
+                                    >
+                                      <MenuItem value="maybe" style={{color:'green'}}>Likely</MenuItem>
+                                      <MenuItem value="unknown" style={{color:'red'}}>Unknown</MenuItem>
+                                    </Select>
+                                  </td>
+                                : <td className="nowrap">-</td>
+                              }
                             </tr>
                           );
                         })

@@ -99,6 +99,10 @@
   border-collapse: collapse;
 }
 
+.events-table td{
+  height: 32px;
+}
+
 td.red{
   color: red;
 }
@@ -112,7 +116,6 @@ th.nowrap
 {
   white-space:nowrap;
   width:237px;
-  vertical-align:top;
 }
 
 [contenteditable] {
