@@ -7,12 +7,14 @@ import axios from 'axios';
 import moment from 'moment';
 import "moment/locale/fr"; 
 import Datetime from 'react-datetime';
-import "react-datetime/css/react-datetime.css";
 import Protect from 'react-app-protect'
 import 'react-app-protect/dist/index.css'
+import "react-datetime/css/react-datetime.css";
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
 import MaterialTable from 'material-table'
 import ReactHTMLTableToExcel from 'react-html-table-to-excel';
 
@@ -155,13 +157,12 @@ class EditableCell extends Component{
       input.className = "editable-mirror";
       input.setAttribute("list", "causes");
       input.value = text;
-      console.log('input', input)
-      console.log('editable', editable)
   
       editable.appendChild(input);
   
       input.addEventListener('focusout', (event2)=>{
         if (event2.target.matches('.editable-mirror')) {
+          // console.log('focus out!')
           // leave edit mode
           // editable.classList.remove("editing")
           var text = input.value;
@@ -169,6 +170,7 @@ class EditableCell extends Component{
           // destroy input
           input.remove();
           // apply value
+          this.props.onFocusOut(text);
         }
       });
       
@@ -179,7 +181,10 @@ class EditableCell extends Component{
 
   render(){
     return(
-      <span contentEditable onFocus={this.onFocusIn.bind(this)} ></span>
+      <span contentEditable 
+        onFocus={this.onFocusIn.bind(this)} 
+        suppressContentEditableWarning={true}
+      >{this.props.value || ''}</span>
     );
   }
 }
@@ -189,8 +194,12 @@ class EventsTables extends Component{
     super(props);
     this.state = {
       causes : [
-          "Pas une plaque",
-          "Mauvais éclairage",
+        "Pas de plaque",
+        "Plaque illisible",
+        "Plaque truquée",
+        "Plaque masquée",
+        "Doublon",
+        "Autre"
         ]
     }
   }
@@ -221,7 +230,7 @@ class EventsTables extends Component{
           <tbody> 
             <tr>
             {
-              Object.keys(this.props.eventsListsByProvider).map((provider, index)=>{
+              Object.keys(this.props.eventsListsByProvider).map((provider)=>{
                 const events = this.props.eventsListsByProvider[provider];
                 return (
                   <td style={{verticalAlign: "baseline"}}>
@@ -247,6 +256,7 @@ class EventsTables extends Component{
                           <th className="nowrap">Photo</th>
                           <th className="nowrap">Cause of error</th>
                           <th className="nowrap">Status</th>
+                          {/* <th className="nowrap">Save</th> */}
                         </tr>
                       </thead>
                       <tbody>  
@@ -268,12 +278,21 @@ class EventsTables extends Component{
                               <td className="nowrap">{event.plateCountry || '-'}</td>
                               <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
                               <td className="nowrap">
-                              <EditableCell />
+                                <EditableCell 
+                                value={event.causeOfError} 
+                                onFocusOut={(text)=>this.props.updateEventCauseOfError(provider, index, text)}
+                                />
                               </td>
-                              {event.status === 'maybe'
-                                ? <td className="green nowrap">Likely</td>
-                                : <td className="red nowrap">Unknown</td>
-                              }
+                              <td className="nowrap">
+                                <Select
+                                  value={event.status || 'unknown'} 
+                                  onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
+                                  style={{color: event.status === 'maybe' ? 'green' : 'red', width:'100%'}}
+                                >
+                                  <MenuItem value="maybe" style={{color:'green'}}>Likely</MenuItem>
+                                  <MenuItem value="unknown" style={{color:'red'}}>Unknown</MenuItem>
+                                </Select>
+                              </td>
                             </tr>
                           );
                         })
@@ -306,6 +325,7 @@ class App extends Component{
         dateGte: moment().subtract(1, 'hours')
       }
     };
+    // window.localStorage.clear();
   }
 
   componentDidMount() {
@@ -336,7 +356,25 @@ class App extends Component{
       }
     }));
   }
-  
+
+  updateEventStatus = (provider, eventIndex, event) => {
+    const status = event.target.value;
+    const eventsListsByProvider = this.state.eventsListsByProvider;
+    const id = eventsListsByProvider[provider][eventIndex]._id;
+    eventsListsByProvider[provider][eventIndex].status = status;
+    this.setState({eventsListsByProvider});
+    this.updateEvent(id, {status});
+  }
+
+  updateEventCauseOfError = (provider, eventIndex, causeOfError) => {
+    const eventsListsByProvider = this.state.eventsListsByProvider;
+    const id = eventsListsByProvider[provider][eventIndex]._id;
+    eventsListsByProvider[provider][eventIndex].causeOfError = causeOfError;
+    this.setState({eventsListsByProvider})
+    this.updateEvent(id, {causeOfError});
+    // console.log('updateEvautCauseOfError', eventsListsByProvider[provider][eventIndex], text)
+  }
+
   async searchEvents(){
     const providers = ['Axis','Hik'];
     this.setState({
@@ -382,6 +420,11 @@ class App extends Component{
     });
   }
 
+  async updateEvent(id, fields){
+    const url = `${process.env.REACT_APP_HOST}/${id}`;
+    return await axios.patch(url, fields);
+  }
+
   render(){
     return(
       <Protect
@@ -406,7 +449,11 @@ class App extends Component{
               <CircularProgress style={{color: '#082851'}} />
             }
             { !this.state.isLoading && !!this.state.eventsListsByProvider &&
-              <EventsTables eventsListsByProvider={this.state.eventsListsByProvider} />
+              <EventsTables 
+                eventsListsByProvider={this.state.eventsListsByProvider} 
+                updateEventStatus={this.updateEventStatus}
+                updateEventCauseOfError={this.updateEventCauseOfError}
+              />
             }
           </div>
         </div>
