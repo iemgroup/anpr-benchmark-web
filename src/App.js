@@ -350,7 +350,7 @@ class App extends Component{
         dateGte: moment().subtract(1, 'hours')
       }
     };
-    // window.localStorage.clear();
+    window.localStorage.clear();
   }
 
   componentDidMount() {
