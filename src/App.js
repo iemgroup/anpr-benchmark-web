@@ -20,6 +20,14 @@ import MaterialTable from 'material-table'
 import ReactHTMLTableToExcel from 'react-html-table-to-excel';
 
 
+const statusParams = {
+  correct: {color: '#0f6600', label: 'Correct'},
+  maybe: {color: '#49a800', label: 'Likely'},
+  unknown: {color: '#ab8900', label: 'Unknown'},
+  wrong: {color: '#ba170b', label: 'Wrong'},
+  ignore: {color: '#808080', label: 'Ignore'}
+}
+
 function alignInTime(list1, list2, index=0, timePeriodSeconds){
   let diffSeconds;
   while( index < list1.length
@@ -214,8 +222,9 @@ class EventsTables extends Component{
     // return this.setState({ ...cause })
   }
   successRatio(list){
-    const nbFail = list.filter(e => e.status !== 'maybe').length;
-    return list.length && 'Success: '+Number( ((list.length - nbFail) / list.length ) * 100).toFixed(1) + '%' || '-';
+    const nbFail = list.filter(e => e.status !== 'maybe' && e.status !== 'correct' && e.status !== 'ignore').length;
+    const listLength = list.filter(e => e.status !== 'ignore').length;
+    return listLength && 'Success: '+Number( ((listLength - nbFail) / listLength ) * 100).toFixed(1) + '%' || '-';
   }
 
   render(){
@@ -298,10 +307,13 @@ class EventsTables extends Component{
                                     <Select
                                       value={event.status || 'unknown'} 
                                       onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
-                                      style={{color: event.status === 'maybe' ? 'green' : 'red', width:'100%'}}
+                                      style={{color: statusParams[event.status]?.color, width:'100%'}}
                                     >
-                                      <MenuItem value="maybe" style={{color:'green'}}>Likely</MenuItem>
-                                      <MenuItem value="unknown" style={{color:'red'}}>Unknown</MenuItem>
+                                      {
+                                        Object.keys(statusParams).map((status)=>{
+                                          return <MenuItem value={status} style={{color:statusParams[status].color}}>{statusParams[status].label}</MenuItem>
+                                        })
+                                      }
                                     </Select>
                                   </td>
                                 : <td className="nowrap">-</td>

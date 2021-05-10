@@ -68,6 +68,11 @@
   flex-direction: column;
 }
 
+.container,
+.tables{
+  min-width: min-content;
+}
+
 .download-table-xls-button{
   color: white;
   background-color: #082851;
