@@ -10,7 +10,6 @@ import Datetime from 'react-datetime';
 import Protect from 'react-app-protect'
 import 'react-app-protect/dist/index.css'
 import "react-datetime/css/react-datetime.css";
-import { RiSave3Fill } from 'react-icons/ri';
 
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
