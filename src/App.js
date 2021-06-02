@@ -27,12 +27,12 @@ const statusParams = {
   ignore: {color: '#808080', label: 'Ignore'}
 }
 
+// pads the top of the lists to align leading value by time if the gap is too large
 function alignInTime(list1, list2, index=0, timePeriodSeconds){
-  let diffSeconds;
+  let diffSeconds = moment(list1[index]?.captureDatetime).diff(moment(list2[index]?.captureDatetime), 'seconds');;
   while( index < list1.length
-      && index < list2.length){
-    diffSeconds = moment(list1[index]?.captureDatetime).diff(moment(list2[index]?.captureDatetime), 'seconds');
-    if(Math.abs(diffSeconds) <= timePeriodSeconds) break;
+      && index < list2.length
+      && Math.abs(diffSeconds) > timePeriodSeconds){
     // list 1's date > list 2's date
     if(diffSeconds > 0){
       list1.splice(index, 0, ...( new Array(1).fill({status: 'unknown'}) ))
@@ -51,12 +51,13 @@ function compareLists(list1, list2){
   const sortedList1 = list1.sort((a, b) => a.timestamp - b.timestamp);
   const sortedList2 = list2.sort((a, b) => a.timestamp - b.timestamp);
   let currEvent1, currEvent2, diffSeconds, i = 0, j = 0;
-  const timePeriodSeconds = 60;
+  const timePeriodSeconds = 120;
   // ======================
   // browse the two lists sequentially and check plates correspondance within time period
   for (; i < sortedList1.length && i < sortedList2.length; i++) {
     // pads the top of the lists to align leading value by time if the gap is too large
-    i = alignInTime(sortedList1, sortedList2, i, timePeriodSeconds);
+    // i = alignInTime(sortedList1, sortedList2, i, timePeriodSeconds);
+    // if(i >= sortedList1.length || i >= sortedList2.length) break;
     currEvent1 = sortedList1[i];
     currEvent2 = sortedList2[i];
     if ( currEvent1.plate === currEvent2.plate ){
@@ -67,11 +68,13 @@ function compareLists(list1, list2){
     }
     let plateFound = false;
     // -----------------------
-    // search up
+    // TODO =========== remplacer toute la boucle par un findIndex et mettre conditions du while dedans ==============
+    // search up ---- Utiliser arr.slice(0, i).reverse() pour chercher vers le haut sur la partie haute du tableau (au dessus de current index) -----
     j = i-1;
     diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
     while(!plateFound 
         && j >= 0 
+        && !sortedList2[j].isSync
         &&  diffSeconds < timePeriodSeconds
         // && sortedList2[j]?.status !== 'maybe'){
       ){
@@ -81,6 +84,7 @@ function compareLists(list1, list2){
         // currEvent1.status = sortedList2[j].status = 'maybe';
         currEvent1.status = currEvent1.status || 'maybe';
         sortedList2[j].status = sortedList2[j].status || 'maybe';
+        sortedList2[j].isSync = true;
         sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ));
       } 
       j--;
@@ -92,6 +96,7 @@ function compareLists(list1, list2){
     diffSeconds = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
     while(!plateFound 
         && j < sortedList2.length 
+        && !sortedList2[j].isSync
         && diffSeconds < timePeriodSeconds 
         // && sortedList2[j]?.status !== 'maybe'){
       ){
@@ -101,6 +106,7 @@ function compareLists(list1, list2){
         // currEvent1.status = sortedList2[j].status = 'maybe';
         currEvent1.status = currEvent1.status || 'maybe';
         sortedList2[j].status = sortedList2[j].status || 'maybe';
+        sortedList2[j].isSync = true;
         sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ));
       } 
       j++;
@@ -306,7 +312,7 @@ class EventsTables extends Component{
                                     <Select
                                       value={event.status || 'unknown'} 
                                       onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
-                                      style={{color: statusParams[event.status]?.color, width:'100%'}}
+                                      style={{color: statusParams[event.status]?.color || statusParams.unknown.color, width:'100%'}}
                                     >
                                       {
                                         Object.keys(statusParams).map((status)=>{
