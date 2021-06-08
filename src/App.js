@@ -15,8 +15,8 @@ import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Select from '@material-ui/core/Select';
 import MenuItem from '@material-ui/core/MenuItem';
-import MaterialTable from 'material-table'
-import ReactHTMLTableToExcel from 'react-html-table-to-excel';
+import { saveAs } from 'file-saver';
+// import Select from 'react-select';
 
 
 const statusParams = {
@@ -209,6 +209,23 @@ class EditableCell extends Component{
   }
 }
 
+class ExportButton extends Component {
+  constructor(props) {
+    super(props);
+    this.exportButton = React.createRef();
+    this.buttonId = "test-table-xls-button";
+  }
+
+  
+
+  render() {
+    return (
+      <button className="download-table-xls-button" onClick={this.props.handleClick}>Export</button>
+      
+    );
+  }
+}
+
 class EventsTables extends Component{
   constructor(props){
     super(props);
@@ -220,12 +237,30 @@ class EventsTables extends Component{
         "Plaque masquée",
         "Doublon",
         "Autre"
-        ]
+        ],
+      isExportReady: false
     }
   }
   selectCallback = (cause) => {
     // return this.setState({ ...cause })
   }
+
+  handleExport = () => {
+    this.setState({
+        isExportReady: true
+    }, ()=> {
+      const table = document.querySelector('#benchmark-table');
+      var blob = new Blob([table.outerHTML], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=iso-8859-1"
+      });  
+      saveAs(blob, "comparatif-anpr.xls");
+      this.setState({
+        isExportReady: false
+    });
+  });
+    
+  }
+
   successRatio(list){
     const nbFail = list.filter(e => e.status !== 'maybe' && e.status !== 'correct' && e.status !== 'ignore').length;
     const listLength = list.filter(e => e.status !== 'ignore').length;
@@ -237,16 +272,8 @@ class EventsTables extends Component{
       <div className="tables"> 
         {
           !!Object.keys(this.props.eventsListsByProvider).length && 
-          <ReactHTMLTableToExcel
-          id="test-table-xls-button"
-          className="download-table-xls-button"
-          table="benchmark-table"
-          filename="comparatif-anpr"
-          sheet="comparatif ANPR"
-          buttonText="Export Excel"
-          />
+          <ExportButton isExportReady={this.state.isExportReady} handleClick={this.handleExport} />
         }
-          {/* <div><CSVLink data={csvData}>Download me</CSVLink>;</div> */}
           <table id="benchmark-table">
           <tbody> 
             <tr>
@@ -297,7 +324,7 @@ class EventsTables extends Component{
                               {/* <td className="nowrap">{event.brand || '-'}</td> */}
                               {/* <td className="nowrap">{event.color || '-'}</td> */}
                               <td className="nowrap">{event.plateCountry || '-'}</td>
-                              <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'lien' : '-'}</a></td>
+                              <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'link' : '-'}</a></td>
                               {event._id
                                 ? <td className="nowrap">
                                   <EditableCell 
@@ -309,7 +336,9 @@ class EventsTables extends Component{
                               }
                               {event._id
                                 ? <td className="nowrap">
-                                    <Select
+                                {this.state.isExportReady
+                                  ? statusParams[event.status]?.label
+                                  : <Select
                                       value={event.status || 'unknown'} 
                                       onChange={(e)=>this.props.updateEventStatus(provider, index, e)}
                                       style={{color: statusParams[event.status]?.color || statusParams.unknown.color, width:'100%'}}
@@ -320,6 +349,7 @@ class EventsTables extends Component{
                                         })
                                       }
                                     </Select>
+                                 }
                                   </td>
                                 : <td className="nowrap">-</td>
                               }
