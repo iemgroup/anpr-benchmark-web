@@ -21,13 +21,13 @@ import { saveAs } from 'file-saver';
 
 const statusParams = {
   correct: {color: '#0f6600', label: 'Correct'},
-  maybe: {color: '#49a800', label: 'Likely'},
-  unknown: {color: '#ab8900', label: 'Unknown'},
+  maybe: {color: '#49a800', label: 'Likely', static: true},
+  unknown: {color: '#ab8900', label: 'Unknown', static: true},
   wrong: {color: '#ba170b', label: 'Wrong'},
   ignore: {color: '#808080', label: 'Ignore'}
 }
 
-function searchSamePlateUpward(list1, list2, startIndex, timePeriodSeconds){
+function findSamePlateUpward(list1, list2, startIndex, timePeriodSeconds){
   list2
     .slice(0, startIndex)
     .reverse()
@@ -46,7 +46,7 @@ function searchSamePlateUpward(list1, list2, startIndex, timePeriodSeconds){
     });
 }
 
-function searchSamePlateDownward(list1, list2, startIndex, timePeriodSeconds){
+function findSamePlateDownward(list1, list2, startIndex, timePeriodSeconds){
   list2
     .slice(startIndex+1)
     .some((event, j)=>{
@@ -77,9 +77,9 @@ function compareLists(list1, list2){
       sortedList2[i].status = sortedList2[i].status || 'maybe';
       continue;
     }
-    searchSamePlateUpward(sortedList1, sortedList2, i, timePeriodSeconds);
+    findSamePlateUpward(sortedList1, sortedList2, i, timePeriodSeconds);
     
-    searchSamePlateDownward(sortedList1, sortedList2, i, timePeriodSeconds)
+    findSamePlateDownward(sortedList1, sortedList2, i, timePeriodSeconds)
   }
   return [sortedList1, sortedList2];
 }
@@ -305,6 +305,8 @@ class EventsTables extends Component{
                               }
                               {event._id
                                 ? <td className="nowrap">
+
+
                                 {this.state.isExportReady
                                   ? statusParams[event.status]?.label
                                   : <Select
@@ -314,7 +316,7 @@ class EventsTables extends Component{
                                     >
                                       {
                                         Object.keys(statusParams).map((status)=>{
-                                          return <MenuItem value={status} style={{color:statusParams[status].color}}>{statusParams[status].label}</MenuItem>
+                                          return <MenuItem disabled={ statusParams[status].static === true } value={status} style={{color:statusParams[status].color}}>{statusParams[status].label}</MenuItem>
                                         })
                                       }
                                     </Select>
@@ -445,9 +447,9 @@ class App extends Component{
 
   render(){
     return(
-      // <Protect
-        // sha512={process.env.REACT_APP_PASS}
-      // >
+      <Protect
+        sha512={process.env.REACT_APP_PASS}
+      >
         <div className="App">
         {/* <MyComponent title="React" /> */}
           <div className="container">
@@ -475,7 +477,7 @@ class App extends Component{
             }
           </div>
         </div>
-      // </Protect>
+      </Protect>
     )
   }
 }
