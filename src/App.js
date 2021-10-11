@@ -267,6 +267,13 @@ class EventsTables extends Component{
     return listLength && 'Success: '+Number( ((listLength - nbFail) / listLength ) * 100).toFixed(1) + '%' || '-';
   }
 
+  isCarEnteringOrLeaving = (isCarEnteringParking) => {
+    if(isCarEnteringParking !== undefined && isCarEnteringParking !== null){
+      return isCarEnteringParking ? 'Entering' : 'Leaving';
+    }
+    return '-'
+  }
+
   render(){
     return(
       <div className="tables"> 
@@ -285,8 +292,8 @@ class EventsTables extends Component{
                     <table className="events-table">
                       <thead>
                         <tr>
-                          <th colSpan="10">{provider}</th>
-                          <th style={{color: 'green'}}>{this.successRatio(events)}</th>
+                          <th colSpan="13">{provider}</th>
+                          <th style={{color: 'green'}}>{events.length && this.successRatio(events)}</th>
                         </tr>
                         <tr>
                           <th className="nowrap">Date</th>
@@ -297,9 +304,9 @@ class EventsTables extends Component{
                           <th className="nowrap">Franic Trust</th>
                           {/* <th className="nowrap">Franchissement</th> */}
                           <th className="nowrap">Direction</th>
-                          {/* <th className="nowrap">Type</th> */}
-                          {/* <th className="nowrap">Marque</th> */}
-                          {/* <th className="nowrap">Couleur</th> */}
+                          <th className="nowrap">Type</th>
+                          <th className="nowrap">Brand</th>
+                          <th className="nowrap">Color</th>
                           <th className="nowrap">Country</th>
                           <th className="nowrap">Photo</th>
                           <th className="nowrap">Cause of error</th>
@@ -310,21 +317,22 @@ class EventsTables extends Component{
                       <tbody>  
                         {
                           events.map(( event, index ) => {
+                          const ocrConfirmation = event.ocrConfirmation;
                           return (
                             <tr key={index}>
-                              <td className="nowrap">{ ( !!event.captureDatetime && moment(event.captureDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
-                              <td className="nowrap">{ (!!event.recordDatetime && moment(event.recordDatetime).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
+                              <td className="nowrap">{ ( !!event.captureISODate && moment(event.captureISODate).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
+                              <td className="nowrap">{ (!!event.creationISODate && moment(event.creationISODate).format('DD-MM-YYYY HH:mm:ss') ) || '-'}</td>
                               <td className="nowrap">{event.plate || '-'}</td>
                               <td className="nowrap">{ ( event.plateConfidence && Number(event.plateConfidence).toFixed(2) + ' %' ) || '-'}</td>
-                              <td className={`${event.plate !== event.franicPlate?.Value ? "red": ""} nowrap`}>{event.franicPlate?.Value || '-'}</td>
-                              <td className="nowrap">{ ( event.franicPlate?.Confidence && Number( Number(event.franicPlate?.Confidence)*100 ).toFixed(2) + ' %' )|| '-'}</td>
+                              <td className={`${event.plate !== ocrConfirmation?.plate ? "red": ""} nowrap`}>{ocrConfirmation?.plate || '-'}</td>
+                              <td className="nowrap">{ ( ocrConfirmation?.confidence && Number( Number(ocrConfirmation?.confidence)*100 ).toFixed(2) + ' %' )|| '-'}</td>
                               {/* <td className="nowrap">{event.crossing || '-'}</td> */}
-                              <td className="nowrap">{event.carMoveDirection || '-'}</td>
-                              {/* <td className="nowrap">{event.carType || '-'}</td> */}
-                              {/* <td className="nowrap">{event.brand || '-'}</td> */}
-                              {/* <td className="nowrap">{event.color || '-'}</td> */}
+                              <td className="nowrap">{ this.isCarEnteringOrLeaving(event.isCarEnteringParking) }</td>
+                              <td className="nowrap">{event.carType || '-'}</td>
+                              <td className="nowrap">{event.carBrand || '-'}</td>
+                              <td className="nowrap">{event.carColor || '-'}</td>
                               <td className="nowrap">{event.plateCountry || '-'}</td>
-                              <td className="nowrap"><a href={event.imagesURI} target="_blank">{event.imagesURI ? 'link' : '-'}</a></td>
+                              <td className="nowrap"><a href={_.get(event, 'images[0].uri')} target="_blank">{_.get(event, 'images[0].uri') ? 'link' : '-'}</a></td>
                               {event._id
                                 ? <td className="nowrap">
                                   <EditableCell 
@@ -436,7 +444,6 @@ class App extends Component{
   }
 
   async searchEvents(){
-    const providers = ['Axis','Hik'];
     this.setState({
       isLoading: true
     })
@@ -444,36 +451,26 @@ class App extends Component{
     const dateLte = this.state.eventsFilter.dateLte;
     const plate = this.state.eventsFilter.plate;
     const filters = {
-      ...(dateGte && { dateGte: moment(dateGte).toISOString() }),
-      ...(dateLte && { dateLte: moment(dateLte).toISOString() }),
+      ...(dateGte && { startISODate: moment(dateGte).toISOString() }),
+      ...(dateLte && { endISODate: moment(dateLte).toISOString() }),
       ...(plate && { plate })
     };
     const host = process.env.REACT_APP_HOST;
-    // providers.forEach((provider)=>{
-      //   filters.provider = provider;
-      //   eventsListsByProvider[provider].events = await axios.get(host, {filters})
-      // });
       
     const eventsListsByProvider = {};
     
-    const result1 = await axios.get(host, {
+    const result = await axios.get(host, {
       params:{
         ...filters, 
-        provider: providers[0] 
+        cameraIds: [process.env.REACT_APP_CAMERA_1_ID, process.env.REACT_APP_CAMERA_2_ID]
       }
     });
-    const events1 = result1?.data;
-    const result2 = await axios.get(host, { 
-      params:{
-        ...filters, 
-        provider: providers[1] 
-      }
-    });
-    // const events2 = await response2.json();
-    const events2 = result2?.data;
-    const [eventsList1, eventsList2] = compareLists(events1, events2);
-    eventsListsByProvider[providers[0]] = eventsList1
-    eventsListsByProvider[providers[1]] = eventsList2
+    const events = result?.data;
+    const eventsCamera1 = events.filter( event => event.iemCameraId === process.env.REACT_APP_CAMERA_1_ID )
+    const eventsCamera2 = events.filter( event => event.iemCameraId === process.env.REACT_APP_CAMERA_2_ID )
+    const [eventsList1, eventsList2] = compareLists(eventsCamera1, eventsCamera2);
+    eventsListsByProvider[`HIK (${process.env.REACT_APP_CAMERA_1_ID})`] = eventsList1
+    eventsListsByProvider[`HIK (${process.env.REACT_APP_CAMERA_2_ID})`] = eventsList2
     this.setState({ 
       eventsListsByProvider: eventsListsByProvider,
       isLoading: false
