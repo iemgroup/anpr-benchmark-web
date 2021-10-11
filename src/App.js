@@ -27,99 +27,60 @@ const statusParams = {
   ignore: {color: '#808080', label: 'Ignore'}
 }
 
-// pads the top of the lists to align leading value by time if the gap is too large
-function alignInTime(list1, list2, index=0, timePeriodSeconds){
-  let diffSeconds = moment(list1[index]?.captureDatetime).diff(moment(list2[index]?.captureDatetime), 'seconds');;
-  while( index < list1.length
-      && index < list2.length
-      && Math.abs(diffSeconds) > timePeriodSeconds){
-    // list 1's date > list 2's date
-    if(diffSeconds > 0){
-      list1.splice(index, 0, ...( new Array(1).fill({status: 'unknown'}) ))
-    }
-    // list 1's date < list 2's date
-    else{
-      list2.splice(index, 0, ...( new Array(1).fill({status: 'unknown'}) ))
-    }
-    index++;
-  }
-  return index;
+function searchSamePlateUpward(list1, list2, startIndex, timePeriodSeconds){
+  list2
+    .slice(0, startIndex)
+    .reverse()
+    .some((event, j)=>{
+      // stop if time difference too great or already verified
+      if( moment(list1[startIndex]?.captureISODate).diff(moment(event.captureISODate), 'seconds') > timePeriodSeconds 
+          || (event.status && event.status !== 'unknown') ) return true
+      // if same plate found, align the two plates by filling the gap between them
+      if(list1[startIndex].plate === event.plate){
+        list1[startIndex].status = list1[startIndex].status || 'maybe';
+        event.status = event.status || 'maybe';
+        list2.splice(startIndex-j-1, 0, ...( new Array(j+1).fill({status: 'unknown'}) ));
+        return true
+      }
+      return false;
+    });
+}
+
+function searchSamePlateDownward(list1, list2, startIndex, timePeriodSeconds){
+  list2
+    .slice(startIndex+1)
+    .some((event, j)=>{
+      // stop if time difference too great or already verified
+      if( moment(event.captureISODate).diff(moment(list1[startIndex]?.captureISODate), 'seconds') > timePeriodSeconds 
+          || (event.status && event.status !== 'unknown') ) return true
+      // if same plate found, align the two plates by filling the gap between them
+      if(list1[startIndex].plate === event.plate){
+        list1[startIndex].status = list1[startIndex].status || 'maybe';
+        event.status = event.status || 'maybe';
+        list1.splice(startIndex, 0, ...( new Array(j+1).fill({status: 'unknown'}) ));
+        return true
+      }
+      return false;
+    });
 }
 
 function compareLists(list1, list2){
   // sort both lists by timestamp
   const sortedList1 = list1.sort((a, b) => a.timestamp - b.timestamp);
   const sortedList2 = list2.sort((a, b) => a.timestamp - b.timestamp);
-  let currEvent1, currEvent2, diffSeconds, i = 0, j = 0;
   const timePeriodSeconds = 120;
   // ======================
   // browse the two lists sequentially and check plates correspondance within time period
-  for (; i < sortedList1.length && i < sortedList2.length; i++) {
-    // pads the top of the lists to align leading value by time if the gap is too large
-    // i = alignInTime(sortedList1, sortedList2, i, timePeriodSeconds);
-    // if(i >= sortedList1.length || i >= sortedList2.length) break;
-    currEvent1 = sortedList1[i];
-    currEvent2 = sortedList2[i];
-    if ( currEvent1.plate === currEvent2.plate ){
-      currEvent1.status = currEvent1.status || 'maybe';
-      currEvent2.status = currEvent2.status || 'maybe';
-      // currEvent1.status = currEvent2.status = 'maybe';
+  for (let i = 0; i < sortedList1.length && i < sortedList2.length; i++) {
+    if ( sortedList1[i].plate === sortedList2[i].plate ){
+      sortedList1[i].status = sortedList1[i].status || 'maybe';
+      sortedList2[i].status = sortedList2[i].status || 'maybe';
       continue;
     }
-    let plateFound = false;
-    // -----------------------
-    // TODO =========== remplacer toute la boucle par un findIndex et mettre conditions du while dedans ==============
-    // search up ---- Utiliser arr.slice(0, i).reverse() pour chercher vers le haut sur la partie haute du tableau (au dessus de current index) -----
-    j = i-1;
-    diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds');
-    while(!plateFound 
-        && j >= 0 
-        && !sortedList2[j].isSync
-        &&  diffSeconds < timePeriodSeconds
-        // && sortedList2[j]?.status !== 'maybe'){
-      ){
-      // - if found, shift plate2 to the same level as plate1
-      if(sortedList1[i].plate === sortedList2[j].plate){
-        plateFound = true;
-        // currEvent1.status = sortedList2[j].status = 'maybe';
-        currEvent1.status = currEvent1.status || 'maybe';
-        sortedList2[j].status = sortedList2[j].status || 'maybe';
-        sortedList2[j].isSync = true;
-        sortedList2.splice(j, 0, ...( new Array(i-j).fill({status: 'unknown'}) ));
-      } 
-      j--;
-      diffSeconds = moment(sortedList1[i]?.captureDatetime).diff(moment(sortedList2[j]?.captureDatetime), 'seconds')
-    }
-    // -----------------------
-    // search down
-    j = i+1;
-    diffSeconds = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
-    while(!plateFound 
-        && j < sortedList2.length 
-        && !sortedList2[j].isSync
-        && diffSeconds < timePeriodSeconds 
-        // && sortedList2[j]?.status !== 'maybe'){
-      ){
-      // if found, shift plate1 to the same level as plate2
-      if(sortedList1[i].plate === sortedList2[j].plate){
-        plateFound = true;
-        // currEvent1.status = sortedList2[j].status = 'maybe';
-        currEvent1.status = currEvent1.status || 'maybe';
-        sortedList2[j].status = sortedList2[j].status || 'maybe';
-        sortedList2[j].isSync = true;
-        sortedList1.splice(i, 0, ...( new Array(j-i).fill({status: 'unknown'}) ));
-      } 
-      j++;
-      diffSeconds = moment(sortedList2[j]?.captureDatetime).diff(moment(sortedList1[i]?.captureDatetime), 'seconds');
-    }
-    // -----------------------
+    searchSamePlateUpward(sortedList1, sortedList2, i, timePeriodSeconds);
+    
+    searchSamePlateDownward(sortedList1, sortedList2, i, timePeriodSeconds)
   }
-  // ======================
-  // pads the two lists to get same length at the end
-  while(sortedList1.length > sortedList2.length) sortedList2.push({status: 'unknown'});
-  while(sortedList1.length < sortedList2.length) sortedList1.push({status: 'unknown'});
-  
-  
   return [sortedList1, sortedList2];
 }
 
@@ -484,9 +445,9 @@ class App extends Component{
 
   render(){
     return(
-      <Protect
-        sha512={process.env.REACT_APP_PASS}
-      >
+      // <Protect
+        // sha512={process.env.REACT_APP_PASS}
+      // >
         <div className="App">
         {/* <MyComponent title="React" /> */}
           <div className="container">
@@ -514,7 +475,7 @@ class App extends Component{
             }
           </div>
         </div>
-      </Protect>
+      // </Protect>
     )
   }
 }
